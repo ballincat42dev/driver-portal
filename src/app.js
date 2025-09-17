@@ -94,7 +94,7 @@ app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
-app.get('/register', (req, res) => {
+app.get('/register', csrfProtection, (req, res) => {
   res.render('register', { error: null, user: null, csrfToken: req.csrfToken() });
 });
 
@@ -111,7 +111,7 @@ app.post('/register', csrfProtection, async (req, res) => {
   res.redirect('/login');
 });
 
-app.get('/login', (req, res) => {
+app.get('/login', csrfProtection, (req, res) => {
   res.render('login', { error: null, user: null, csrfToken: req.csrfToken() });
 });
 
@@ -131,16 +131,16 @@ app.post('/logout', csrfProtection, (req, res) => {
   });
 });
 
-app.get('/dashboard', requireAuth, async (req, res) => {
+app.get('/dashboard', requireAuth, csrfProtection, async (req, res) => {
   const mySubmissions = await all('SELECT * FROM submissions WHERE user_id = ? ORDER BY created_at DESC', [req.session.user.id]);
   res.render('dashboard', { user: req.session.user, submissions: mySubmissions, csrfToken: req.csrfToken() });
 });
 
-app.get('/submit', requireAuth, (req, res) => {
+app.get('/submit', requireAuth, csrfProtection, (req, res) => {
   res.render('submit', { user: req.session.user, error: null, submission: null, csrfToken: req.csrfToken() });
 });
 
-app.get('/edit/:id', requireAuth, async (req, res) => {
+app.get('/edit/:id', requireAuth, csrfProtection, async (req, res) => {
   const submissionId = req.params.id;
   const submission = await get('SELECT * FROM submissions WHERE id = ? AND user_id = ?', [submissionId, req.session.user.id]);
   if (!submission) {
