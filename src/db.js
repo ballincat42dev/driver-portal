@@ -71,9 +71,5 @@ export function all(sql, params = []) {
   });
 }
 
-// Monkey-patch convenience on db
-db.run = (sql, params = []) => run(sql, params);
-db.get = (sql, params = []) => get(sql, params);
-db.all = (sql, params = []) => all(sql, params);
 
 

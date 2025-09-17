@@ -6,7 +6,7 @@ import multer from 'multer';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { initializeDatabase, db } from './db.js';
+import { initializeDatabase, db, run, get, all } from './db.js';
 import expressLayouts from 'express-ejs-layouts';
 
 dotenv.config();
@@ -34,6 +34,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(expressLayouts);
 app.set('layout', 'layout');
+
+// Set default title for all views
+app.use((req, res, next) => {
+  res.locals.title = res.locals.title || 'Driver Portal';
+  next();
+});
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -89,7 +95,7 @@ app.post('/register', async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   try {
     const role = admin_code && admin_code === (process.env.ADMIN_CODE || 'admin123') ? 'admin' : 'driver';
-    await db.run('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [name, email, passwordHash, role]);
+    await run('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)', [name, email, passwordHash, role]);
   } catch (e) {
     return res.render('register', { error: 'Email already in use.' });
   }
@@ -102,7 +108,7 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+  const user = await get('SELECT * FROM users WHERE email = ?', [email]);
   if (!user) return res.render('login', { error: 'Invalid credentials.' });
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.render('login', { error: 'Invalid credentials.' });
@@ -117,7 +123,7 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/dashboard', requireAuth, async (req, res) => {
-  const mySubmissions = await db.all('SELECT * FROM submissions WHERE user_id = ? ORDER BY created_at DESC', [req.session.user.id]);
+  const mySubmissions = await all('SELECT * FROM submissions WHERE user_id = ? ORDER BY created_at DESC', [req.session.user.id]);
   res.render('dashboard', { user: req.session.user, submissions: mySubmissions });
 });
 
@@ -140,7 +146,7 @@ app.post(
     const replayPath = req.files?.replay?.[0]?.filename || null;
     const telemetryFiles = (req.files?.telemetry || []).map(f => f.filename);
     const telemetryJson = JSON.stringify(telemetryFiles);
-    await db.run(
+    await run(
       `INSERT INTO submissions (user_id, race_date, race_time, series, is_protest, protest_text, replay_file, telemetry_files)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -159,7 +165,7 @@ app.post(
 );
 
 app.get('/admin', requireAuth, requireAdmin, async (req, res) => {
-  const submissions = await db.all(
+  const submissions = await all(
     `SELECT s.*, u.name as user_name, u.email as user_email
      FROM submissions s JOIN users u ON s.user_id = u.id
      ORDER BY s.created_at DESC`
