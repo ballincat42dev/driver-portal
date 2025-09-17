@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { initializeDatabase, db, run, get, all } from './db.js';
 import expressLayouts from 'express-ejs-layouts';
+import csrf from 'csurf';
 
 dotenv.config();
 
@@ -43,6 +44,10 @@ app.use((req, res, next) => {
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// CSRF protection
+const csrfProtection = csrf({ cookie: false });
+app.use(csrfProtection);
 
 app.use(
   session({
@@ -170,7 +175,14 @@ app.get('/admin', requireAuth, requireAdmin, async (req, res) => {
      FROM submissions s JOIN users u ON s.user_id = u.id
      ORDER BY s.created_at DESC`
   );
-  res.render('admin', { user: req.session.user, submissions });
+  const users = await all(`SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC`);
+  res.render('admin', { user: req.session.user, submissions, users, csrfToken: req.csrfToken() });
+});
+
+app.post('/admin/users/:id/make-admin', requireAuth, requireAdmin, async (req, res) => {
+  const targetUserId = req.params.id;
+  await run('UPDATE users SET role = ? WHERE id = ?', ['admin', targetUserId]);
+  res.redirect('/admin');
 });
 
 app.get('/files/replays/:name', requireAuth, requireAdmin, (req, res) => {

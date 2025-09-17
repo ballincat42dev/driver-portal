@@ -1,58 +1,138 @@
 <% title = 'Admin'; %>
+<style>
+  .table-container { overflow-x: auto; margin: 1rem 0; }
+  table { width: 100%; min-width: 600px; }
+  .btn-danger { background-color: #dc3545; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  .btn-danger:hover { background-color: #c82333; }
+  .confirmation-dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; }
+  .confirmation-dialog.show { display: block; }
+  .confirmation-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+  .confirmation-overlay.show { display: block; }
+  .btn-group { display: flex; gap: 0.5rem; }
+</style>
+
 <article>
   <h2>Admin Review</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Driver</th>
-        <th>Email</th>
-        <th>Date</th>
-        <th>Time</th>
-        <th>Series</th>
-        <th>Protest</th>
-        <th>Replay</th>
-        <th>Telemetry</th>
-        <th>Submitted</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% if (!submissions.length) { %>
-        <tr><td colspan="9">No submissions yet.</td></tr>
-      <% } %>
-      <% submissions.forEach(s => { %>
+  <details open>
+    <summary><strong>Users</strong></summary>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!users || !users.length) { %>
+            <tr><td colspan="4">No users yet.</td></tr>
+          <% } %>
+          <% users.forEach(u => { %>
+            <tr>
+              <td><%= u.name %></td>
+              <td><%= u.email %></td>
+              <td><%= u.role %></td>
+              <td>
+                <% if (u.role !== 'admin') { %>
+                  <button class="btn-danger" onclick="confirmMakeAdmin('<%= u.name %>', '<%= u.id %>')">Make Admin</button>
+                <% } else { %>
+                  —
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <h3>Submissions</h3>
+  <div class="table-container">
+    <table>
+      <thead>
         <tr>
-          <td><%= s.user_name %></td>
-          <td><%= s.user_email %></td>
-          <td><%= s.race_date %></td>
-          <td><%= s.race_time %></td>
-          <td><%= s.series %></td>
-          <td>
-            <%= s.is_protest ? 'Yes' : 'No' %>
-            <% if (s.protest_text) { %>
-              <details><summary>Details</summary><pre><%= s.protest_text %></pre></details>
-            <% } %>
-          </td>
-          <td>
-            <% if (s.replay_file) { %>
-              <a href="/files/replays/<%= s.replay_file %>" download>Download</a>
-            <% } else { %>—<% } %>
-          </td>
-          <td>
-            <% try { const files = JSON.parse(s.telemetry_files || '[]'); %>
-              <% if (files.length) { %>
-                <ul>
-                  <% files.forEach(f => { %>
-                    <li><a href="/files/telemetry/<%= f %>" download><%= f %></a></li>
-                  <% }) %>
-                </ul>
-              <% } else { %>—<% } %>
-            <% } catch (e) { %>—<% } %>
-          </td>
-          <td><%= new Date(s.created_at).toLocaleString() %></td>
+          <th>Driver</th>
+          <th>Email</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Series</th>
+          <th>Protest</th>
+          <th>Replay</th>
+          <th>Telemetry</th>
+          <th>Submitted</th>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% if (!submissions.length) { %>
+          <tr><td colspan="9">No submissions yet.</td></tr>
+        <% } %>
+        <% submissions.forEach(s => { %>
+          <tr>
+            <td><%= s.user_name %></td>
+            <td><%= s.user_email %></td>
+            <td><%= s.race_date %></td>
+            <td><%= s.race_time %></td>
+            <td><%= s.series %></td>
+            <td>
+              <%= s.is_protest ? 'Yes' : 'No' %>
+              <% if (s.protest_text) { %>
+                <details><summary>Details</summary><pre><%= s.protest_text %></pre></details>
+              <% } %>
+            </td>
+            <td>
+              <% if (s.replay_file) { %>
+                <a href="/files/replays/<%= s.replay_file %>" download>Download</a>
+              <% } else { %>—<% } %>
+            </td>
+            <td>
+              <% try { const files = JSON.parse(s.telemetry_files || '[]'); %>
+                <% if (files.length) { %>
+                  <ul>
+                    <% files.forEach(f => { %>
+                      <li><a href="/files/telemetry/<%= f %>" download><%= f %></a></li>
+                    <% }) %>
+                  </ul>
+                <% } else { %>—<% } %>
+              <% } catch (e) { %>—<% } %>
+            </td>
+            <td><%= new Date(s.created_at).toLocaleString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 </article>
+
+<!-- Confirmation Dialog -->
+<div id="confirmationOverlay" class="confirmation-overlay"></div>
+<div id="confirmationDialog" class="confirmation-dialog">
+  <h3>Confirm Action</h3>
+  <p>Are you sure you want to make <strong id="userName"></strong> an admin?</p>
+  <div class="btn-group">
+    <button onclick="hideConfirmation()">Cancel</button>
+    <form id="confirmForm" method="post" style="display: inline;">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="btn-danger">Make Admin</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function confirmMakeAdmin(name, userId) {
+  document.getElementById('userName').textContent = name;
+  document.getElementById('confirmForm').action = '/admin/users/' + userId + '/make-admin';
+  document.getElementById('confirmationOverlay').classList.add('show');
+  document.getElementById('confirmationDialog').classList.add('show');
+}
+
+function hideConfirmation() {
+  document.getElementById('confirmationOverlay').classList.remove('show');
+  document.getElementById('confirmationDialog').classList.remove('show');
+}
+
+// Close dialog when clicking overlay
+document.getElementById('confirmationOverlay').addEventListener('click', hideConfirmation);
+</script>
 
 
