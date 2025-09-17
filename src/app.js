@@ -64,6 +64,12 @@ app.use(
 // Apply CSRF protection after session middleware
 app.use(csrfProtection);
 
+// Set CSRF token for all views after CSRF middleware
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
+
 // Auth helpers
 function requireAuth(req, res, next) {
   if (!req.session.user) return res.redirect('/login');

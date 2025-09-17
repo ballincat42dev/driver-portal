@@ -5,6 +5,7 @@
     <p class="error"><%= error %></p>
   <% } %>
   <form method="post" action="/submit" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="grid">
       <label>Date<input type="date" name="race_date" required /></label>
       <label>Time<input type="time" name="race_time" required /></label>
