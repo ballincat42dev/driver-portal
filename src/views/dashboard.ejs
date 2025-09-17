@@ -12,11 +12,12 @@
         <th>Series</th>
         <th>Protest</th>
         <th>Submitted</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       <% if (!submissions.length) { %>
-        <tr><td colspan="5">No submissions yet.</td></tr>
+        <tr><td colspan="6">No submissions yet.</td></tr>
       <% } %>
       <% submissions.forEach(s => { %>
         <tr>
@@ -25,6 +26,9 @@
           <td><%= s.series %></td>
           <td><%= s.is_protest ? 'Yes' : 'No' %></td>
           <td><%= new Date(s.created_at).toLocaleString() %></td>
+          <td>
+            <a href="/edit/<%= s.id %>" class="secondary">Edit</a>
+          </td>
         </tr>
       <% }) %>
     </tbody>

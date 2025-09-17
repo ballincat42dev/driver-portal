@@ -1,27 +1,42 @@
-<% title = 'Submit'; %>
+<% title = submission ? 'Edit Race' : 'Submit Race'; %>
 <article>
-  <h2>Submit race</h2>
+  <h2><%= submission ? 'Edit race' : 'Submit race' %></h2>
   <% if (error) { %>
     <p class="error"><%= error %></p>
   <% } %>
-  <form method="post" action="/submit" enctype="multipart/form-data">
+  <form method="post" action="<%= submission ? '/edit/' + submission.id : '/submit' %>" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="grid">
-      <label>Date<input type="date" name="race_date" required /></label>
-      <label>Time<input type="time" name="race_time" required /></label>
+      <label>Date<input type="date" name="race_date" value="<%= submission ? submission.race_date : '' %>" required /></label>
+      <label>Time<input type="time" name="race_time" value="<%= submission ? submission.race_time : '' %>" required /></label>
     </div>
-    <label>Series<input type="text" name="series" placeholder="iRacing IMSA, F1, etc." required /></label>
+    <label>Series<input type="text" name="series" placeholder="iRacing IMSA, F1, etc." value="<%= submission ? submission.series : '' %>" required /></label>
 
     <fieldset>
       <label>
-        <input type="checkbox" name="is_protest" value="1" /> Filing a protest
+        <input type="checkbox" name="is_protest" value="1" <%= submission && submission.is_protest ? 'checked' : '' %> /> Filing a protest
       </label>
-      <label>Protest details<textarea name="protest_text" rows="4" placeholder="Describe the incident"></textarea></label>
+      <label>Protest details<textarea name="protest_text" rows="4" placeholder="Describe the incident"><%= submission ? (submission.protest_text || '') : '' %></textarea></label>
     </fieldset>
 
     <label>Replay file<input type="file" name="replay" accept=".rpy,.rpl,.zip,.7z,.rar" /></label>
+    <% if (submission && submission.replay_file) { %>
+      <p><small>Current: <%= submission.replay_file %> (upload new file to replace)</small></p>
+    <% } %>
+    
     <label>Telemetry files<input type="file" name="telemetry" multiple accept=".ibt,.csv,.zip,.7z,.rar" /></label>
-    <button type="submit">Submit</button>
+    <% if (submission) { %>
+      <% try { const files = JSON.parse(submission.telemetry_files || '[]'); %>
+        <% if (files.length) { %>
+          <p><small>Current files: <%= files.join(', ') %> (upload new files to replace all)</small></p>
+        <% } %>
+      <% } catch (e) { } %>
+    <% } %>
+    
+    <button type="submit"><%= submission ? 'Update' : 'Submit' %></button>
+    <% if (submission) { %>
+      <a href="/dashboard" class="secondary">Cancel</a>
+    <% } %>
   </form>
 </article>
 

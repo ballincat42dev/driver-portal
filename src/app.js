@@ -144,7 +144,16 @@ app.get('/dashboard', requireAuth, async (req, res) => {
 });
 
 app.get('/submit', requireAuth, (req, res) => {
-  res.render('submit', { user: req.session.user, error: null });
+  res.render('submit', { user: req.session.user, error: null, submission: null });
+});
+
+app.get('/edit/:id', requireAuth, async (req, res) => {
+  const submissionId = req.params.id;
+  const submission = await get('SELECT * FROM submissions WHERE id = ? AND user_id = ?', [submissionId, req.session.user.id]);
+  if (!submission) {
+    return res.status(404).send('Submission not found or you do not have permission to edit it.');
+  }
+  res.render('submit', { user: req.session.user, error: null, submission });
 });
 
 app.post(
@@ -174,6 +183,72 @@ app.post(
         protest_text || null,
         replayPath,
         telemetryJson,
+      ]
+    );
+    res.redirect('/dashboard');
+  }
+);
+
+app.post(
+  '/edit/:id',
+  requireAuth,
+  upload.fields([
+    { name: 'replay', maxCount: 1 },
+    { name: 'telemetry', maxCount: 5 },
+  ]),
+  async (req, res) => {
+    const submissionId = req.params.id;
+    const { race_date, race_time, series, is_protest, protest_text } = req.body;
+    
+    // Verify user owns this submission
+    const existingSubmission = await get('SELECT * FROM submissions WHERE id = ? AND user_id = ?', [submissionId, req.session.user.id]);
+    if (!existingSubmission) {
+      return res.status(404).send('Submission not found or you do not have permission to edit it.');
+    }
+    
+    if (!race_date || !race_time || !series) {
+      return res.render('submit', { user: req.session.user, error: 'Please fill required fields.', submission: existingSubmission });
+    }
+    
+    // Handle file uploads - keep existing files if no new ones uploaded
+    let replayPath = existingSubmission.replay_file;
+    let telemetryFiles = JSON.parse(existingSubmission.telemetry_files || '[]');
+    
+    if (req.files?.replay?.[0]) {
+      // Delete old replay file if it exists
+      if (replayPath) {
+        const oldReplayPath = path.join(replayDir, replayPath);
+        if (fs.existsSync(oldReplayPath)) fs.unlinkSync(oldReplayPath);
+      }
+      replayPath = req.files.replay[0].filename;
+    }
+    
+    if (req.files?.telemetry && req.files.telemetry.length > 0) {
+      // Delete old telemetry files
+      telemetryFiles.forEach(file => {
+        const oldTelemetryPath = path.join(telemetryDir, file);
+        if (fs.existsSync(oldTelemetryPath)) fs.unlinkSync(oldTelemetryPath);
+      });
+      // Add new telemetry files
+      telemetryFiles = req.files.telemetry.map(f => f.filename);
+    }
+    
+    const telemetryJson = JSON.stringify(telemetryFiles);
+    
+    await run(
+      `UPDATE submissions 
+       SET race_date = ?, race_time = ?, series = ?, is_protest = ?, protest_text = ?, replay_file = ?, telemetry_files = ?
+       WHERE id = ? AND user_id = ?`,
+      [
+        race_date,
+        race_time,
+        series,
+        is_protest ? 1 : 0,
+        protest_text || null,
+        replayPath,
+        telemetryJson,
+        submissionId,
+        req.session.user.id
       ]
     );
     res.redirect('/dashboard');
