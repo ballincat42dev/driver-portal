@@ -1,0 +1,27 @@
+<% const title = 'Submit'; %>
+<article>
+  <h2>Submit race</h2>
+  <% if (error) { %>
+    <p class="error"><%= error %></p>
+  <% } %>
+  <form method="post" action="/submit" enctype="multipart/form-data">
+    <div class="grid">
+      <label>Date<input type="date" name="race_date" required /></label>
+      <label>Time<input type="time" name="race_time" required /></label>
+    </div>
+    <label>Series<input type="text" name="series" placeholder="iRacing IMSA, F1, etc." required /></label>
+
+    <fieldset>
+      <label>
+        <input type="checkbox" name="is_protest" value="1" /> Filing a protest
+      </label>
+      <label>Protest details<textarea name="protest_text" rows="4" placeholder="Describe the incident"></textarea></label>
+    </fieldset>
+
+    <label>Replay file<input type="file" name="replay" accept=".rpy,.rpl,.zip,.7z,.rar" /></label>
+    <label>Telemetry files<input type="file" name="telemetry" multiple accept=".ibt,.csv,.zip,.7z,.rar" /></label>
+    <button type="submit">Submit</button>
+  </form>
+</article>
+
+

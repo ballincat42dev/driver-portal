@@ -1,0 +1,58 @@
+<% const title = 'Admin'; %>
+<article>
+  <h2>Admin Review</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Driver</th>
+        <th>Email</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Series</th>
+        <th>Protest</th>
+        <th>Replay</th>
+        <th>Telemetry</th>
+        <th>Submitted</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!submissions.length) { %>
+        <tr><td colspan="9">No submissions yet.</td></tr>
+      <% } %>
+      <% submissions.forEach(s => { %>
+        <tr>
+          <td><%= s.user_name %></td>
+          <td><%= s.user_email %></td>
+          <td><%= s.race_date %></td>
+          <td><%= s.race_time %></td>
+          <td><%= s.series %></td>
+          <td>
+            <%= s.is_protest ? 'Yes' : 'No' %>
+            <% if (s.protest_text) { %>
+              <details><summary>Details</summary><pre><%= s.protest_text %></pre></details>
+            <% } %>
+          </td>
+          <td>
+            <% if (s.replay_file) { %>
+              <a href="/files/replays/<%= s.replay_file %>" download>Download</a>
+            <% } else { %>—<% } %>
+          </td>
+          <td>
+            <% try { const files = JSON.parse(s.telemetry_files || '[]'); %>
+              <% if (files.length) { %>
+                <ul>
+                  <% files.forEach(f => { %>
+                    <li><a href="/files/telemetry/<%= f %>" download><%= f %></a></li>
+                  <% }) %>
+                </ul>
+              <% } else { %>—<% } %>
+            <% } catch (e) { %>—<% } %>
+          </td>
+          <td><%= new Date(s.created_at).toLocaleString() %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</article>
+
+

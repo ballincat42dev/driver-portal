@@ -1,0 +1,27 @@
+{
+  "name": "driverlogin",
+  "version": "1.0.0",
+  "description": "Race driver portal for submissions and admin review",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "bcrypt": "5.1.1",
+    "connect-sqlite3": "0.9.15",
+    "dotenv": "16.4.5",
+    "ejs": "3.1.10",
+    "express-ejs-layouts": "2.5.1",
+    "express": "4.19.2",
+    "express-session": "1.18.0",
+    "multer": "1.4.5-lts.1",
+    "sqlite3": "5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "3.1.0"
+  }
+}
+
+

@@ -1,0 +1,17 @@
+<% const title = 'Register'; %>
+<article>
+  <h2>Register</h2>
+  <% if (error) { %>
+    <p class="error"><%= error %></p>
+  <% } %>
+  <form method="post" action="/register">
+    <label>Name<input type="text" name="name" required /></label>
+    <label>Email<input type="email" name="email" required /></label>
+    <label>Password<input type="password" name="password" required /></label>
+    <label>Admin code (optional)<input type="text" name="admin_code" /></label>
+    <button type="submit">Create account</button>
+  </form>
+  <p>Already have an account? <a href="/login">Login</a></p>
+</article>
+
+
