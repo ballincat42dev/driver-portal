@@ -45,9 +45,11 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// CSRF protection
-const csrfProtection = csrf({ cookie: false });
-app.use(csrfProtection);
+// CSRF protection - must be after session middleware
+const csrfProtection = csrf({ 
+  cookie: false,
+  sessionKey: 'session'
+});
 
 app.use(
   session({
@@ -58,6 +60,9 @@ app.use(
     cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 },
   })
 );
+
+// Apply CSRF protection after session middleware
+app.use(csrfProtection);
 
 // Auth helpers
 function requireAuth(req, res, next) {
