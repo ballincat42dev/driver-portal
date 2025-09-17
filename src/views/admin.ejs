@@ -1,15 +1,26 @@
 <% title = 'Admin'; %>
-<style>
-  .table-container { overflow-x: auto; margin: 1rem 0; }
-  table { width: 100%; min-width: 600px; }
-  .btn-danger { background-color: #dc3545; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
-  .btn-danger:hover { background-color: #c82333; }
-  .confirmation-dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; }
-  .confirmation-dialog.show { display: block; }
-  .confirmation-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
-  .confirmation-overlay.show { display: block; }
-  .btn-group { display: flex; gap: 0.5rem; }
-</style>
+  <style>
+    .table-container { margin: 1rem 0; }
+    table { width: 100%; table-layout: fixed; font-size: 0.9em; }
+    .btn-danger { background-color: #dc3545; color: white; padding: 0.4rem 0.8rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
+    .btn-danger:hover { background-color: #c82333; }
+    .confirmation-dialog { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; }
+    .confirmation-dialog.show { display: block; }
+    .confirmation-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+    .confirmation-overlay.show { display: block; }
+    .btn-group { display: flex; gap: 0.5rem; }
+    .name-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .email-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .series-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .date-cell, .time-cell { white-space: nowrap; }
+    .protest-cell { white-space: nowrap; }
+    .replay-cell, .telemetry-cell { white-space: nowrap; }
+    .submitted-cell { white-space: nowrap; font-size: 0.85em; }
+    .click-reveal { cursor: pointer; color: #007bff; text-decoration: underline; }
+    .click-reveal:hover { color: #0056b3; }
+    .email-details { display: none; margin-top: 0.25rem; font-size: 0.85em; color: #666; }
+    .email-details.show { display: block; }
+  </style>
 
 <article>
   <h2>Admin Review</h2>
@@ -67,25 +78,28 @@
         <% if (!submissions.length) { %>
           <tr><td colspan="9">No submissions yet.</td></tr>
         <% } %>
-        <% submissions.forEach(s => { %>
+        <% submissions.forEach((s, index) => { %>
           <tr>
-            <td><%= s.user_name %></td>
-            <td><%= s.user_email %></td>
-            <td><%= s.race_date %></td>
-            <td><%= s.race_time %></td>
-            <td><%= s.series %></td>
-            <td>
+            <td class="name-cell"><%= s.user_name %></td>
+            <td class="email-cell">
+              <span class="click-reveal" onclick="toggleEmail(<%= index %>)">Click to Reveal</span>
+              <div id="email-<%= index %>" class="email-details"><%= s.user_email %></div>
+            </td>
+            <td class="date-cell"><%= s.race_date %></td>
+            <td class="time-cell"><%= s.race_time %></td>
+            <td class="series-cell"><%= s.series %></td>
+            <td class="protest-cell">
               <%= s.is_protest ? 'Yes' : 'No' %>
               <% if (s.protest_text) { %>
                 <details><summary>Details</summary><pre><%= s.protest_text %></pre></details>
               <% } %>
             </td>
-            <td>
+            <td class="replay-cell">
               <% if (s.replay_file) { %>
                 <a href="/files/replays/<%= s.replay_file %>" download>Download</a>
               <% } else { %>—<% } %>
             </td>
-            <td>
+            <td class="telemetry-cell">
               <% try { const files = JSON.parse(s.telemetry_files || '[]'); %>
                 <% if (files.length) { %>
                   <ul>
@@ -96,7 +110,7 @@
                 <% } else { %>—<% } %>
               <% } catch (e) { %>—<% } %>
             </td>
-            <td><%= new Date(s.created_at).toLocaleString() %></td>
+            <td class="submitted-cell"><%= new Date(s.created_at).toLocaleString() %></td>
           </tr>
         <% }) %>
       </tbody>
@@ -129,6 +143,11 @@ function confirmMakeAdmin(name, userId) {
 function hideConfirmation() {
   document.getElementById('confirmationOverlay').classList.remove('show');
   document.getElementById('confirmationDialog').classList.remove('show');
+}
+
+function toggleEmail(index) {
+  const emailDiv = document.getElementById('email-' + index);
+  emailDiv.classList.toggle('show');
 }
 
 // Close dialog when clicking overlay
