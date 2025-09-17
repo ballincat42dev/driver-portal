@@ -144,7 +144,7 @@ app.get('/dashboard', requireAuth, async (req, res) => {
 });
 
 app.get('/submit', requireAuth, (req, res) => {
-  res.render('submit', { user: req.session.user, error: null, submission: null });
+  res.render('submit', { user: req.session.user, error: null, submission: null, csrfToken: req.csrfToken() });
 });
 
 app.get('/edit/:id', requireAuth, async (req, res) => {
@@ -153,7 +153,7 @@ app.get('/edit/:id', requireAuth, async (req, res) => {
   if (!submission) {
     return res.status(404).send('Submission not found or you do not have permission to edit it.');
   }
-  res.render('submit', { user: req.session.user, error: null, submission });
+  res.render('submit', { user: req.session.user, error: null, submission, csrfToken: req.csrfToken() });
 });
 
 app.post(
