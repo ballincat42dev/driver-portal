@@ -45,6 +45,12 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// CSRF protection - must be after session middleware
+const csrfProtection = csrf({ 
+  cookie: false,
+  sessionKey: 'session'
+});
+
 app.use(
   session({
     store: new SQLiteStore({ db: 'sessions.sqlite', dir: path.join(__dirname, '..', 'data') }),
@@ -55,13 +61,14 @@ app.use(
   })
 );
 
-// CSRF protection - must be after session middleware
-const csrfProtection = csrf({ 
-  cookie: false,
-  sessionKey: 'session'
-});
+// Apply CSRF protection after session middleware
+app.use(csrfProtection);
 
-// CSRF token will be set by individual routes that need it
+// Set CSRF token for all views after CSRF middleware
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 
 // Auth helpers
 function requireAuth(req, res, next) {
@@ -94,11 +101,11 @@ app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
-app.get('/register', csrfProtection, (req, res) => {
-  res.render('register', { error: null, user: null, csrfToken: req.csrfToken() });
+app.get('/register', (req, res) => {
+  res.render('register', { error: null, user: null });
 });
 
-app.post('/register', csrfProtection, async (req, res) => {
+app.post('/register', async (req, res) => {
   const { name, email, password, admin_code } = req.body;
   if (!name || !email || !password) return res.render('register', { error: 'All fields are required.' });
   const passwordHash = await bcrypt.hash(password, 10);
@@ -111,11 +118,11 @@ app.post('/register', csrfProtection, async (req, res) => {
   res.redirect('/login');
 });
 
-app.get('/login', csrfProtection, (req, res) => {
-  res.render('login', { error: null, user: null, csrfToken: req.csrfToken() });
+app.get('/login', (req, res) => {
+  res.render('login', { error: null, user: null });
 });
 
-app.post('/login', csrfProtection, async (req, res) => {
+app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const user = await get('SELECT * FROM users WHERE email = ?', [email]);
   if (!user) return res.render('login', { error: 'Invalid credentials.' });
@@ -125,34 +132,33 @@ app.post('/login', csrfProtection, async (req, res) => {
   res.redirect('/dashboard');
 });
 
-app.post('/logout', csrfProtection, (req, res) => {
+app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login');
   });
 });
 
-app.get('/dashboard', requireAuth, csrfProtection, async (req, res) => {
+app.get('/dashboard', requireAuth, async (req, res) => {
   const mySubmissions = await all('SELECT * FROM submissions WHERE user_id = ? ORDER BY created_at DESC', [req.session.user.id]);
-  res.render('dashboard', { user: req.session.user, submissions: mySubmissions, csrfToken: req.csrfToken() });
+  res.render('dashboard', { user: req.session.user, submissions: mySubmissions });
 });
 
-app.get('/submit', requireAuth, csrfProtection, (req, res) => {
-  res.render('submit', { user: req.session.user, error: null, submission: null, csrfToken: req.csrfToken() });
+app.get('/submit', requireAuth, (req, res) => {
+  res.render('submit', { user: req.session.user, error: null, submission: null });
 });
 
-app.get('/edit/:id', requireAuth, csrfProtection, async (req, res) => {
+app.get('/edit/:id', requireAuth, async (req, res) => {
   const submissionId = req.params.id;
   const submission = await get('SELECT * FROM submissions WHERE id = ? AND user_id = ?', [submissionId, req.session.user.id]);
   if (!submission) {
     return res.status(404).send('Submission not found or you do not have permission to edit it.');
   }
-  res.render('submit', { user: req.session.user, error: null, submission, csrfToken: req.csrfToken() });
+  res.render('submit', { user: req.session.user, error: null, submission });
 });
 
 app.post(
   '/submit',
   requireAuth,
-  csrfProtection,
   upload.fields([
     { name: 'replay', maxCount: 1 },
     { name: 'telemetry', maxCount: 5 },
@@ -186,7 +192,6 @@ app.post(
 app.post(
   '/edit/:id',
   requireAuth,
-  csrfProtection,
   upload.fields([
     { name: 'replay', maxCount: 1 },
     { name: 'telemetry', maxCount: 5 },
@@ -260,7 +265,7 @@ app.get('/admin', requireAuth, requireAdmin, async (req, res) => {
   res.render('admin', { user: req.session.user, submissions, users, csrfToken: req.csrfToken() });
 });
 
-app.post('/admin/users/:id/make-admin', requireAuth, requireAdmin, csrfProtection, async (req, res) => {
+app.post('/admin/users/:id/make-admin', requireAuth, requireAdmin, async (req, res) => {
   const targetUserId = req.params.id;
   await run('UPDATE users SET role = ? WHERE id = ?', ['admin', targetUserId]);
   res.redirect('/admin');
