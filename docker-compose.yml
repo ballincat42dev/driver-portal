@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - SESSION_SECRET=${SESSION_SECRET:-change_me}
+      - ADMIN_CODE=${ADMIN_CODE:-admin123}
+    volumes:
+      - uploads:/app/server/uploads
+      - data:/app/server/data
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  data:
+
+
